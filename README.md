@@ -10,6 +10,32 @@ The project was built around a real operational problem: process large
 spreadsheets of companies, locate the correct annual report or financial
 statement, reject weak matches, and keep the whole run observable from a browser.
 
+## Business Value
+
+Finance, insurance, compliance, and market-intelligence teams often need annual
+reports for hundreds or thousands of entities. Doing this manually means opening
+company websites, searching investor-relations pages, downloading PDFs, checking
+whether they are the right company/year, renaming files, uploading them, and
+tracking failures in a spreadsheet. That workflow is slow, repetitive, and easy
+to audit poorly.
+
+Xtract ARF turns that into an automated workflow:
+
+- **Reduces manual research time** by processing company lists in parallel
+  instead of one analyst searching one company at a time.
+- **Improves data quality** by requiring financial-statement evidence before a
+  PDF is accepted.
+- **Creates auditability** through run-level status, per-company failure reasons,
+  exportable results, and stored source URLs.
+- **Controls cloud spend** by using Spot workers only when jobs exist and
+  stopping them after the queue drains.
+- **Supports operations at scale** with queue-based workers, stale job recovery,
+  deduplication, and dashboard visibility.
+
+In business terms, the system is useful anywhere teams need reliable document
+collection for due diligence, regulatory review, financial-data ingestion,
+credit analysis, entity onboarding, or competitor monitoring.
+
 ## Why This Project Stands Out
 
 - **Distributed queue architecture**: dashboard/API and worker processes are
