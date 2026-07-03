@@ -1,0 +1,14 @@
+annual-report-bot.pem
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+*.csv
+.env
+.env.*
+!.env.example
+.claude/

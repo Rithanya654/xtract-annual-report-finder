@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xtract Dashboard</title>
+    <style>
+        :root {
+            --green: #1D9E75;
+            --red: #E24B4A;
+            --amber: #EF9F27;
+            --blue: #378ADD;
+            --gray: #888780;
+            --bg: #F8F8F6;
+            --card: #FFFFFF;
+            --text: #2C2C2A;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        header {
+            background: var(--card);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo { font-size: 1.5rem; font-weight: 700; }
+        .run-name { font-size: 1.1rem; font-weight: 500; color: var(--gray); }
+
+        .status-badge {
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .badge-running  { background: rgba(239,159,39,0.18);  color: var(--amber); }
+        .badge-complete { background: rgba(29,158,117,0.18);  color: var(--green); }
+        .badge-stopped  { background: rgba(226,75,74,0.15);   color: var(--red); }
+
+        .container { max-width: 1400px; margin: 0 auto; padding: 2rem; }
+
+        .progress-bar {
+            background: var(--card);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .progress-track {
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--blue), var(--green));
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: var(--card);
+            padding: 1.25rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .stat-label { font-size: 0.85rem; color: var(--gray); margin-bottom: 0.3rem; }
+        .stat-value { font-size: 1.9rem; font-weight: 700; }
+
+        .actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.65rem;
+        }
+
+        .spot-status {
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin-bottom: 1.5rem;
+        }
+
+        button {
+            padding: 0.65rem 1.3rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.85; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary  { background: var(--blue);  color: #fff; }
+        .btn-success  { background: var(--green); color: #fff; }
+        .btn-secondary{ background: var(--gray);  color: #fff; }
+        .btn-danger   { background: var(--red);   color: #fff; }
+
+        .search-box { margin-bottom: 1rem; }
+        .search-box input {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .search-box input:focus { outline: none; border-color: var(--blue); }
+
+        .table-container {
+            background: var(--card);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow-x: auto;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        thead { background: var(--bg); }
+        th {
+            padding: 0.9rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            user-select: none;
+            white-space: nowrap;
+        }
+        th:hover { background: #e8e8e6; }
+        th.sort-asc::after  { content: " ↑"; }
+        th.sort-desc::after { content: " ↓"; }
+
+        td {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid #ececec;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        .status-found    { color: var(--green); font-weight: 600; }
+        .status-not_found{ color: var(--red);   font-weight: 600; }
+        .status-running  { color: var(--amber); font-weight: 600; }
+        .status-pending  { color: var(--gray);  font-weight: 600; }
+        .status-error    { color: var(--red);   font-weight: 600; font-style: italic; }
+
+        a { color: var(--blue); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        tr.hidden { display: none; }
+
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: var(--green);
+            color: #fff;
+            padding: 1rem 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 999;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.toast-info { background: var(--blue); }
+        .toast.toast-error { background: var(--red); }
+
+        @keyframes slideIn {
+            from { transform: translateX(420px); opacity: 0; }
+            to   { transform: translateX(0);     opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Xtract</div>
+        <div class="run-name" id="runName">Loading…</div>
+        <div class="status-badge badge-running" id="statusBadge">Running</div>
+    </header>
+
+    <div class="container">
+
+        <div class="progress-bar">
+            <div class="progress-label">
+                <span>Progress</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-label">Total</div>
+                <div class="stat-value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Found</div>
+                <div class="stat-value" id="statFound" style="color:var(--green)">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Not Found</div>
+                <div class="stat-value" id="statNotFound" style="color:var(--red)">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Running / Pending</div>
+                <div class="stat-value" id="statRunning" style="color:var(--amber)">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Estimated Cost</div>
+                <div class="stat-value" id="statCost">$0.00</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn-primary"   onclick="retryPdf()">PDF Run</button>
+            <button class="btn-success"   onclick="triggerLandingPage()">Landing Pages</button>
+            <button class="btn-danger"    id="stopBtn" onclick="stopRun()">Stop</button>
+            <button class="btn-danger"    onclick="clearDb()">Clear DB</button>
+            <button class="btn-secondary" onclick="exportXlsx()">Export XLSX</button>
+            <button class="btn-secondary" onclick="exportCsv()">Export CSV</button>
+            <button class="btn-secondary" onclick="downloadZip()">Download Zip</button>
+            <button class="btn-success" id="startSpotBtn" onclick="startSpotWorkers()">Start Spot Workers</button>
+            <button class="btn-danger" id="stopSpotBtn" onclick="stopSpotWorkers()">Stop Spot Workers</button>
+        </div>
+
+        <div class="spot-status" id="spotStatus">Spot workers: checking...</div>
+
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search by company name…" oninput="applyFilter()">
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">#</th>
+                        <th onclick="sortTable(1)">Company</th>
+                        <th onclick="sortTable(2)">Nickname</th>
+                        <th onclick="sortTable(3)">Country</th>
+                        <th onclick="sortTable(4)">Status</th>
+                        <th onclick="sortTable(5)">Reason</th>
+                        <th onclick="sortTable(6)">Landing URL</th>
+                        <th onclick="sortTable(7)">PDF</th>
+                        <th onclick="sortTable(8)">Updated</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsTable">
+                    <tr id="placeholder"><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray)">Loading…</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const runId = "{{ run_id }}";
+
+        // ── State ────────────────────────────────────────────────────────────
+        let currentResults = [];   // full array from last /results fetch
+        let sortCol = 0;
+        let sortAsc = true;
+        let statusInterval = null;
+        let resultsInterval = null;
+        let placeholderRemoved = false;
+
+        // ── Status polling (every 3 s) ────────────────────────────────────
+        async function fetchStatus() {
+            try {
+                const resp = await fetch(`/api/run/${runId}/status`);
+                if (!resp.ok) return;
+                const d = await resp.json();
+
+                document.getElementById('runName').textContent = d.name || runId;
+                document.getElementById('progressPercent').textContent = d.percent + '%';
+                document.getElementById('progressFill').style.width = d.percent + '%';
+                document.getElementById('statTotal').textContent    = d.total;
+                document.getElementById('statFound').textContent    = d.found;
+                document.getElementById('statNotFound').textContent = d.not_found;
+                document.getElementById('statRunning').textContent  = (d.running || 0) + (d.pending || 0);
+                const costEl = document.getElementById('statCost');
+                const cost = d.cost || {};
+                costEl.textContent = `$${Number(cost.total_usd || 0).toFixed(2)}`;
+                costEl.title = `Compute: $${Number(cost.compute_usd || 0).toFixed(2)} | API: $${Number(cost.api_usd || 0).toFixed(2)} | Other: $${Number(cost.other_usd || 0).toFixed(2)}`;
+
+                const badge = document.getElementById('statusBadge');
+                const stopBtn = document.getElementById('stopBtn');
+                if (d.status === 'complete') {
+                    badge.textContent = 'Complete';
+                    badge.className = 'status-badge badge-complete';
+                    stopBtn.disabled = true;
+                    clearInterval(statusInterval);
+                    clearInterval(resultsInterval);
+                    statusInterval = null;
+                    resultsInterval = null;
+                    showToast('Run complete!', 'green');
+                } else if (d.status === 'stopped') {
+                    badge.textContent = 'Stopped';
+                    badge.className = 'status-badge badge-stopped';
+                    stopBtn.disabled = true;
+                    clearInterval(statusInterval);
+                    clearInterval(resultsInterval);
+                    statusInterval = null;
+                    resultsInterval = null;
+                }
+            } catch (e) { /* ignore transient */ }
+        }
+
+        // ── Results polling (every 5 s) ───────────────────────────────────
+        async function fetchResults() {
+            try {
+                const resp = await fetch(`/api/run/${runId}/results`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                currentResults = data;
+                updateTableInPlace(data);
+                applyFilter();
+            } catch (e) { /* ignore transient */ }
+        }
+
+        // ── In-place table update ─────────────────────────────────────────
+        function agentKey(agent) {
+            // Safe attribute value — base64 encode to handle special chars
+            return btoa(unescape(encodeURIComponent(agent)));
+        }
+
+        function updateTableInPlace(results) {
+            const tbody = document.getElementById('resultsTable');
+
+            // Remove the "Loading…" placeholder on first real data
+            if (!placeholderRemoved) {
+                const ph = document.getElementById('placeholder');
+                if (ph) ph.remove();
+                placeholderRemoved = true;
+            }
+
+            results.forEach((r, i) => {
+                const key = agentKey(r.agent);
+                let row = tbody.querySelector(`tr[data-key="${key}"]`);
+
+                if (!row) {
+                    row = document.createElement('tr');
+                    row.setAttribute('data-key', key);
+                    row.setAttribute('data-agent', r.agent.toLowerCase());
+                    row.innerHTML = buildRowHtml(r, i + 1);
+                    tbody.appendChild(row);
+                } else {
+                    // Update only the cells that may change
+                    row.cells[0].textContent = i + 1;
+                    row.cells[2].textContent = r.nickname || '—';
+                    row.cells[4].className = 'status-' + r.status;
+                    row.cells[4].textContent = r.status.replace('_', ' ');
+                    row.cells[5].textContent = r.error_msg || '—';
+                    row.cells[6].innerHTML  = landingCell(r);
+                    row.cells[7].innerHTML  = pdfCell(r);
+                    row.cells[8].textContent = formatDate(r.updated_at);
+                }
+            });
+        }
+
+        function buildRowHtml(r, idx) {
+            return `
+                <td>${idx}</td>
+                <td>${esc(r.agent)}</td>
+                <td>${esc(r.nickname || '—')}</td>
+                <td>${esc(r.country || '—')}</td>
+                <td class="status-${r.status}">${r.status.replace('_', ' ')}</td>
+                <td>${esc(r.error_msg || '—')}</td>
+                <td>${landingCell(r)}</td>
+                <td>${pdfCell(r)}</td>
+                <td>${formatDate(r.updated_at)}</td>
+            `;
+        }
+
+        function landingCell(r) {
+            return r.landing_url
+                ? `<a href="${esc(r.landing_url)}" target="_blank" rel="noopener">View</a>`
+                : '—';
+        }
+
+        function pdfCell(r) {
+            if (!r.s3_key) return '—';
+            const key = encodeURIComponent(r.s3_key);
+            return `<a href="#" onclick="downloadPdf(${JSON.stringify(r.s3_key)});return false;">Download</a>`;
+        }
+
+        // ── Search / filter ───────────────────────────────────────────────
+        function applyFilter() {
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const tbody = document.getElementById('resultsTable');
+            Array.from(tbody.rows).forEach(row => {
+                const agent = row.getAttribute('data-agent') || '';
+                row.classList.toggle('hidden', term !== '' && !agent.includes(term));
+            });
+        }
+
+        // ── Sort ──────────────────────────────────────────────────────────
+        function sortTable(col) {
+            const ths = document.querySelectorAll('thead th');
+            ths.forEach((th, i) => {
+                th.classList.remove('sort-asc', 'sort-desc');
+            });
+
+            if (sortCol === col) {
+                sortAsc = !sortAsc;
+            } else {
+                sortCol = col;
+                sortAsc = true;
+            }
+
+            ths[col].classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+            const keys = ['id', 'agent', 'nickname', 'country', 'status', 'error_msg', 'landing_url', 's3_key', 'updated_at'];
+            const key  = keys[col];
+
+            currentResults.sort((a, b) => {
+                let av = (a[key] || '').toString().toLowerCase();
+                let bv = (b[key] || '').toString().toLowerCase();
+                if (av < bv) return sortAsc ? -1 :  1;
+                if (av > bv) return sortAsc ?  1 : -1;
+                return 0;
+            });
+
+            // Re-render (sort is a full redraw — that's acceptable per UX)
+            const tbody = document.getElementById('resultsTable');
+            tbody.innerHTML = '';
+            placeholderRemoved = true;
+            currentResults.forEach((r, i) => {
+                const row = document.createElement('tr');
+                const key2 = agentKey(r.agent);
+                row.setAttribute('data-key', key2);
+                row.setAttribute('data-agent', r.agent.toLowerCase());
+                row.innerHTML = buildRowHtml(r, i + 1);
+                tbody.appendChild(row);
+            });
+            applyFilter();
+        }
+
+        // ── Action buttons ────────────────────────────────────────────────
+        async function retryPdf() {
+            const resp = await fetch(`/api/run/${runId}/retry`, { method: 'POST' });
+            const d = await resp.json();
+            if (d.queued > 0) {
+                showToast(`Queued ${d.queued} companies for PDF retry`, 'blue');
+                restartPolling();
+            } else {
+                showToast('No failed/not-found companies to retry', 'blue');
+            }
+        }
+
+        async function triggerLandingPage() {
+            if (!confirm('Queue landing page search for all companies in this run?')) return;
+            const resp = await fetch(`/api/run/${runId}/landingpage`, { method: 'POST' });
+            const d = await resp.json();
+            showToast(`Queued ${d.queued} companies for landing page search`, 'blue');
+        }
+
+        async function stopRun() {
+            if (!confirm('Stop this run? All queued jobs will be cancelled.')) return;
+            const btn = document.getElementById('stopBtn');
+            btn.disabled = true;
+            btn.textContent = 'Stopping…';
+            try {
+                const resp = await fetch(`/api/run/${runId}/stop`, { method: 'POST' });
+                const d = await resp.json();
+                showToast(`Stopped — ${d.jobs_removed} queued jobs removed`, 'red');
+                clearInterval(statusInterval);
+                clearInterval(resultsInterval);
+                statusInterval = null;
+                resultsInterval = null;
+                fetchStatus();
+                fetchResults();
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Stop';
+                showToast('Stop failed', 'red');
+            }
+        }
+
+        async function clearDb() {
+            if (!confirm('Delete ALL results for this run? This cannot be undone.')) return;
+            const resp = await fetch(`/api/cleardb/${runId}`, { method: 'POST' });
+            const d = await resp.json();
+            currentResults = [];
+            document.getElementById('resultsTable').innerHTML =
+                '<tr id="placeholder"><td colspan="9" style="text-align:center;padding:2rem;color:var(--gray)">Cleared.</td></tr>';
+            placeholderRemoved = false;
+            showToast(`Deleted ${d.deleted} records`, 'red');
+        }
+
+        function exportXlsx() { window.location.href = `/api/run/${runId}/export/xlsx`; }
+        function exportCsv()  { window.location.href = `/api/run/${runId}/export/csv`;  }
+
+        async function downloadZip() {
+            const resp = await fetch(`/api/run/${runId}/zip`);
+            const d    = await resp.json();
+            if (d.url) { window.open(d.url, '_blank'); }
+            else        { showToast('No PDFs available yet', 'red'); }
+        }
+
+        async function downloadPdf(s3Key) {
+            try {
+                const resp = await fetch(`/api/presign?key=${encodeURIComponent(s3Key)}`);
+                const d    = await resp.json();
+                if (d.url) { window.open(d.url, '_blank'); }
+                else        { showToast('Could not get download link', 'red'); }
+            } catch (e) {
+                showToast('Error fetching download link', 'red');
+            }
+        }
+
+        async function fetchSpotWorkers() {
+            const el = document.getElementById('spotStatus');
+            try {
+                const resp = await fetch('/api/spot-workers/status');
+                const d = await resp.json();
+                if (!resp.ok) {
+                    el.textContent = `Spot workers: error - ${d.detail || 'status failed'}`;
+                    return;
+                }
+                if (!d.configured) {
+                    el.textContent = `Spot workers: not configured (${d.error || 'missing env vars'})`;
+                    return;
+                }
+                const instances = d.instances || [];
+                const running = instances.filter(i => i.state === 'running').length;
+                const pending = instances.filter(i => i.state === 'pending').length;
+                el.textContent = `Spot workers: ${running} running, ${pending} pending, ${instances.length} managed total`;
+            } catch (e) {
+                el.textContent = 'Spot workers: status unavailable';
+            }
+        }
+
+        async function startSpotWorkers() {
+            if (!confirm('Launch configured Spot worker instances?')) return;
+            const btn = document.getElementById('startSpotBtn');
+            btn.disabled = true;
+            btn.textContent = 'Starting...';
+            try {
+                const resp = await fetch('/api/spot-workers/start', { method: 'POST' });
+                const d = await resp.json();
+                if (!resp.ok) throw new Error(d.detail || 'Spot launch failed');
+                showToast(`Launched ${d.launched} Spot worker instance(s)`, 'blue');
+                fetchSpotWorkers();
+            } catch (e) {
+                showToast(e.message || 'Spot launch failed', 'red');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Start Spot Workers';
+            }
+        }
+
+        async function stopSpotWorkers() {
+            if (!confirm('Terminate all dashboard-managed Spot worker instances?')) return;
+            const btn = document.getElementById('stopSpotBtn');
+            btn.disabled = true;
+            btn.textContent = 'Stopping...';
+            try {
+                const resp = await fetch('/api/spot-workers/stop', { method: 'POST' });
+                const d = await resp.json();
+                if (!resp.ok) throw new Error(d.detail || 'Spot termination failed');
+                showToast(`Terminated ${d.terminated} Spot worker instance(s)`, 'red');
+                fetchSpotWorkers();
+            } catch (e) {
+                showToast(e.message || 'Spot termination failed', 'red');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Stop Spot Workers';
+            }
+        }
+
+        // ── Helpers ───────────────────────────────────────────────────────
+        function esc(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+
+        function formatDate(ds) {
+            if (!ds) return '—';
+            try { return new Date(ds).toLocaleString(); }
+            catch (e) { return ds; }
+        }
+
+        let toastTimer = null;
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.className = 'toast' + (type === 'blue' ? ' toast-info' : type === 'red' ? ' toast-error' : '');
+            t.style.display = 'block';
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { t.style.display = 'none'; }, 5000);
+        }
+
+        function restartPolling() {
+            if (!statusInterval) {
+                statusInterval  = setInterval(fetchStatus,  3000);
+                resultsInterval = setInterval(fetchResults, 5000);
+            }
+        }
+
+        // ── Bootstrap ─────────────────────────────────────────────────────
+        fetchStatus();
+        fetchResults();
+        fetchSpotWorkers();
+        statusInterval  = setInterval(fetchStatus,  3000);
+        resultsInterval = setInterval(fetchResults, 5000);
+        setInterval(fetchSpotWorkers, 30000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xtract — Annual Report Finder</title>
+    <style>
+        :root {
+            --green: #1D9E75;
+            --red: #E24B4A;
+            --amber: #EF9F27;
+            --blue: #378ADD;
+            --gray: #888780;
+            --bg: #F8F8F6;
+            --card: #FFFFFF;
+            --text: #2C2C2A;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: var(--card);
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .subtitle { font-size: 1rem; color: var(--gray); margin-bottom: 2rem; }
+
+        .drop-zone {
+            border: 2px dashed var(--gray);
+            border-radius: 8px;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+            margin-bottom: 1.5rem;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--blue);
+            background: rgba(55,138,221,0.05);
+        }
+        .drop-zone.has-file {
+            border-color: var(--green);
+            background: rgba(29,158,117,0.05);
+        }
+
+        input[type="file"] { display: none; }
+
+        .field { margin-bottom: 1.1rem; }
+        label { display: block; font-weight: 500; font-size: 0.9rem; margin-bottom: 0.4rem; }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        input[type="text"]:focus { outline: none; border-color: var(--blue); }
+
+        /* Run type selector */
+        .run-type-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+        .run-type-option {
+            position: relative;
+        }
+        .run-type-option input[type="radio"] {
+            display: none;
+        }
+        .run-type-label {
+            display: block;
+            padding: 0.85rem 1rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            user-select: none;
+        }
+        .run-type-label .rt-icon {
+            font-size: 1.4rem;
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+        .run-type-label .rt-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: block;
+        }
+        .run-type-label .rt-desc {
+            font-size: 0.78rem;
+            color: var(--gray);
+            margin-top: 0.2rem;
+            display: block;
+        }
+        .run-type-option input[type="radio"]:checked + .run-type-label {
+            border-color: var(--blue);
+            background: rgba(55,138,221,0.07);
+            color: var(--text);
+        }
+        .run-type-label:hover {
+            border-color: #aaa;
+            background: rgba(0,0,0,0.02);
+        }
+
+        .btn-run {
+            width: 100%;
+            padding: 1rem;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-run:hover:not(:disabled) { background: #2c6eb8; }
+        .btn-run:disabled { background: var(--gray); cursor: not-allowed; }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid rgba(255,255,255,0.35);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.75s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error {
+            background: var(--red);
+            color: white;
+            padding: 0.85rem 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .filename {
+            color: var(--green);
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .section-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--gray);
+            margin-bottom: 0.6rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Xtract</h1>
+        <p class="subtitle">Annual Report Finder</p>
+
+        <form id="uploadForm">
+
+            <!-- File drop zone -->
+            <div class="drop-zone" id="dropZone">
+                <p>Drop your Excel or CSV file here</p>
+                <p style="color:var(--gray);font-size:0.88rem;margin-top:0.4rem">or click to browse (.xlsx, .xls, .csv)</p>
+                <p class="filename" id="filename"></p>
+            </div>
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+
+            <!-- Run type -->
+            <div class="section-label">Run Type</div>
+            <div class="run-type-group">
+                <div class="run-type-option">
+                    <input type="radio" id="rtPdf" name="run_type" value="pdf" checked>
+                    <label class="run-type-label" for="rtPdf">
+                        <span class="rt-icon">📄</span>
+                        <span class="rt-title">PDF Run</span>
+                        <span class="rt-desc">Find &amp; download annual report PDFs</span>
+                    </label>
+                </div>
+                <div class="run-type-option">
+                    <input type="radio" id="rtLanding" name="run_type" value="landingpage">
+                    <label class="run-type-label" for="rtLanding">
+                        <span class="rt-icon">🔗</span>
+                        <span class="rt-title">Landing Pages</span>
+                        <span class="rt-desc">Find IR landing pages &amp; financial links</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Run name -->
+            <div class="field">
+                <label for="runName">Run Name</label>
+                <input type="text" id="runName" placeholder="e.g. Batch June 2026" required>
+            </div>
+
+            <!-- Notify emails -->
+            <div class="field">
+                <label for="notifyEmails">Notify Emails</label>
+                <input type="text" id="notifyEmails" placeholder="email1@co.com, email2@co.com">
+            </div>
+
+            <button type="submit" class="btn-run" id="submitBtn" disabled>
+                <span id="btnText">Run</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
+        </form>
+
+        <div class="error" id="error"></div>
+    </div>
+
+    <script>
+        const dropZone   = document.getElementById('dropZone');
+        const fileInput  = document.getElementById('fileInput');
+        const submitBtn  = document.getElementById('submitBtn');
+        const btnText    = document.getElementById('btnText');
+        const spinner    = document.getElementById('spinner');
+        const errorDiv   = document.getElementById('error');
+        const filenameEl = document.getElementById('filename');
+
+        let selectedFile = null;
+
+        // ── Drop zone ──────────────────────────────────────────────────────
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        dropZone.addEventListener('dragover', e => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length) handleFile(e.target.files[0]);
+        });
+
+        function handleFile(file) {
+            const ext = '.' + file.name.split('.').pop().toLowerCase();
+            if (!['.xlsx', '.xls', '.csv'].includes(ext)) {
+                showError('Please select an Excel (.xlsx, .xls) or CSV file');
+                return;
+            }
+            selectedFile = file;
+            filenameEl.textContent = file.name;
+            dropZone.classList.add('has-file');
+            submitBtn.disabled = false;
+            errorDiv.style.display = 'none';
+        }
+
+        // ── Update button label on run type change ────────────────────────
+        document.querySelectorAll('input[name="run_type"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                btnText.textContent = radio.value === 'landingpage' ? 'Find Landing Pages' : 'Run PDF Search';
+            });
+        });
+
+        // ── Submit ─────────────────────────────────────────────────────────
+        document.getElementById('uploadForm').addEventListener('submit', async e => {
+            e.preventDefault();
+
+            if (!selectedFile) { showError('Please select a file'); return; }
+
+            const runName      = document.getElementById('runName').value.trim();
+            const notifyEmails = document.getElementById('notifyEmails').value.trim();
+            const runType      = document.querySelector('input[name="run_type"]:checked').value;
+
+            if (!runName) { showError('Please enter a run name'); return; }
+
+            btnText.style.display  = 'none';
+            spinner.style.display  = 'block';
+            submitBtn.disabled     = true;
+
+            const formData = new FormData();
+            formData.append('file',          selectedFile);
+            formData.append('run_name',      runName);
+            formData.append('notify_emails', notifyEmails || '');
+            formData.append('run_type',      runType);
+
+            try {
+                const resp = await fetch('/api/upload', { method: 'POST', body: formData });
+                const data = await resp.json();
+
+                if (resp.ok) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    showError(data.detail || 'Upload failed');
+                    btnText.style.display = 'block';
+                    spinner.style.display = 'none';
+                    submitBtn.disabled    = false;
+                }
+            } catch (err) {
+                showError('Network error: ' + err.message);
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+                submitBtn.disabled    = false;
+            }
+        });
+
+        function showError(msg) {
+            errorDiv.textContent   = msg;
+            errorDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

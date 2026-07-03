@@ -1,0 +1,18 @@
+# Local development only — EC2 production uses native postgres + redis (no Docker)
+version: '3.8'
+services:
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: xtract
+      POSTGRES_PASSWORD: xtract_local_password
+      POSTGRES_DB: xtract
+    ports:
+      - "5433:5432"    # use 5433 locally to avoid conflicts with system postgres
+    restart: unless-stopped
